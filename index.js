@@ -29,6 +29,9 @@ app.use("/api/v1/products",uploadProduct);
 const  getAllProducts = require("./routes/products-route");
 app.use("/api/v1/products",getAllProducts);
 
+const  TransactionRoutes  = require("./routes/transaction-route");
+app.use("/api/v1/transaction", TransactionRoutes );
+
 
 
 app.listen(port, () => {
