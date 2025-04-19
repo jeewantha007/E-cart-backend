@@ -29,8 +29,19 @@ app.use("/api/v1/products",uploadProduct);
 const  getAllProducts = require("./routes/products-route");
 app.use("/api/v1/products",getAllProducts);
 
+const updateProducts = require("./routes/products-route")
+app.use("/api/v1/products", updateProducts)
+
+const deleteProducts = require("./routes/products-route")
+app.use("/api/v1/products", deleteProducts)
+
 const  TransactionRoutes  = require("./routes/transaction-route");
 app.use("/api/v1/transaction", TransactionRoutes );
+
+const getUserOrders = require("./routes/orders-route");
+app.use("/api/v1/orders", getUserOrders)
+
+
 
 
 
