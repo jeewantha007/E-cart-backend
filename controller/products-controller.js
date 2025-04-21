@@ -39,7 +39,7 @@ const productUpload = (req, res) => {
 
 
 const getAllProducts = (req, res) => {
-  const showInactive = req.query.showInactive === 'true';
+    const showInactive = req.query.showInactive === 'true';
   const sql = showInactive 
     ? 'SELECT * FROM products' 
     : 'SELECT * FROM products WHERE active = 1';
