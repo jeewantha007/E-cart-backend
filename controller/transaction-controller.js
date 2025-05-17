@@ -1,4 +1,3 @@
-// transaction-controller.js
 const connection = require('../db/db-connection');
 
 // Get promise-based connection
@@ -48,8 +47,9 @@ const processOrderTransaction = async ({
     );
     const orderId = orderResult.insertId;
 
-    // 2. Insert into order_items
+    // 2. Insert into order_items and update product inventory
     for (const item of cartItems) {
+      // Insert order item
       await promiseConnection.query(
         'INSERT INTO order_items (order_id, product_id, product_name, quantity, price, total_price) VALUES (?, ?, ?, ?, ?, ?)',
         [
@@ -60,6 +60,29 @@ const processOrderTransaction = async ({
           item.price, 
           (item.price * item.quantity).toFixed(2)
         ]
+      );
+      
+      // Check current stock level before updating
+      const [stockResult] = await promiseConnection.query(
+        'SELECT qty FROM products WHERE id = ?',
+        [item.productId]
+      );
+      
+      if (stockResult.length === 0) {
+        throw new Error(`Product with ID ${item.productId} not found`);
+      }
+      
+      const currentStock = stockResult[0].qty;
+      
+      // Ensure we have enough stock
+      if (currentStock < item.quantity) {
+        throw new Error(`Insufficient stock for product ID ${item.productId}. Available: ${currentStock}, Requested: ${item.quantity}`);
+      }
+      
+      // Update product inventory (subtract purchased quantity)
+      await promiseConnection.query(
+        'UPDATE products SET qty = qty - ? WHERE id = ?',
+        [item.quantity, item.productId]
       );
     }
 
@@ -129,6 +152,16 @@ const orderTransaction = async (req, res) => {
     });
   } catch (error) {
     console.error('Order transaction failed:', error);
+    
+    // Provide more specific error messages for stock-related issues
+    if (error.message.includes('Insufficient stock')) {
+      return res.status(400).json({
+        success: false,
+        message: error.message,
+        type: 'STOCK_ERROR'
+      });
+    }
+    
     return res.status(500).json({
       success: false,
       message: 'Order placement failed',

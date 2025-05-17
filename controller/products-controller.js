@@ -11,22 +11,22 @@ const productUpload = (req, res) => {
     }
 
     // After the image upload, the rest of the product data can be accessed in req.body
-    const { name, description, price, category } = req.body;
+    const { name, description, price, category, qty } = req.body;
     const image = req.file ? req.file.filename : null; // File path of uploaded image (can store in DB)
 
     // Validate the inputs
-    if (!name || !price || !category) {
-      return res.status(400).json({ message: 'Product name, price, and category are required' });
+    if (!name || !price || !category || !qty) {
+      return res.status(400).json({ message: 'Product name, price, category and quantity are required' });
     }
 
     // SQL query to insert product data (including image path) into the database
     const query = `
-      INSERT INTO products (name, description, price, category, image)
-      VALUES (?, ?, ?, ?, ?)
+      INSERT INTO products (name, description, price, category, image, qty)
+      VALUES (?, ?, ?, ?, ?, ?)
     `;
 
     // Execute the SQL query to insert data
-    connection.query(query, [name, description, price, category, image], (error, results) => {
+    connection.query(query, [name, description, price, category, image, qty], (error, results) => {
       if (error) {
         return res.status(500).json({ message: 'Error saving product to database', error: error });
       }
@@ -40,9 +40,9 @@ const productUpload = (req, res) => {
 
 const getAllProducts = (req, res) => {
     const showInactive = req.query.showInactive === 'true';
-  const sql = showInactive 
-    ? 'SELECT * FROM products' 
-    : 'SELECT * FROM products WHERE active = 1';
+    const sql = showInactive 
+      ? 'SELECT * FROM products' 
+      : 'SELECT * FROM products WHERE active = 1';
   
     connection.query(sql, (err, results) => {
       if (err) {
@@ -59,111 +59,109 @@ const getAllProducts = (req, res) => {
   
       res.status(200).json(formattedProducts);
     });
-  };
+};
 
 
-  const updateProduct = (req, res) => {
-    // Apply multer to upload the image
-    upload.single('image')(req, res, (err) => {
-      if (err) {
-        return res.status(500).json({ message: 'Error uploading image', error: err });
-      }
-  
-      // Extract product ID from route params instead of body
-      const productId = req.params.id; // Make sure your route has this parameter
-      const { name, description, price, category } = req.body;
-      const image = req.file ? req.file.filename : null;
-  
-      // Log received data for debugging
-      console.log('Received data:', {
-        productId,
-        name,
-        description,
-        price,
-        category,
-        hasImage: !!image
-      });
-  
-      // Validate the inputs
-      if (!productId || !name || !price || !category) {
-        return res.status(400).json({ 
-          message: 'Product ID, name, price, and category are required',
-          received: {
-            productId: productId || 'missing',
-            name: name || 'missing',
-            price: price || 'missing',
-            category: category || 'missing'
-          }
-        });
-      }
-  
-      // Begin building the SQL query
-      let query = `
-        UPDATE products
-        SET name = ?, description = ?, price = ?, category = ?
-      `;
-      const params = [name, description, price, category];
-  
-      // If there's a new image, include it in the update query
-      if (image) {
-        query += `, image = ?`;
-        params.push(image);
-      }
-  
-      // Complete the SQL query to match the product ID
-      query += ` WHERE id = ?`;
-      params.push(productId);
-  
-      // Execute the SQL query to update the product in the database
-      connection.query(query, params, (error, results) => {
-        if (error) {
-          return res.status(500).json({ message: 'Error updating product in database', error: error });
-        }
-  
-        if (results.affectedRows === 0) {
-          return res.status(404).json({ message: 'Product not found' });
-        }
-  
-        // Successfully updated the product
-        res.status(200).json({ 
-          message: 'Product updated successfully',
-          productId: productId
-        });
-      });
-    });
-  };
-  
-
-  const softDeleteProduct = (req, res) => {
-    const productId = req.params.id;
-    
-    if (!productId) {
-      return res.status(400).json({ message: 'Product ID is required' });
+const updateProduct = (req, res) => {
+  // Apply multer to upload the image
+  upload.single('image')(req, res, (err) => {
+    if (err) {
+      return res.status(500).json({ message: 'Error uploading image', error: err });
     }
-  
-    const deactivateQuery = 'UPDATE products SET active = 0 WHERE id = ?';
-    
-    connection.query(deactivateQuery, [productId], (error, results) => {
+
+    // Extract product ID from route params instead of body
+    const productId = req.params.id; // Make sure your route has this parameter
+    const { name, description, price, category, qty } = req.body;
+    const image = req.file ? req.file.filename : null;
+
+    // Log received data for debugging
+    console.log('Received data:', {
+      productId,
+      name,
+      description,
+      price,
+      category,
+      qty,
+      hasImage: !!image
+    });
+
+    // Validate the inputs
+    if (!productId || !name || !price || !category || !qty) {
+      return res.status(400).json({ 
+        message: 'Product ID, name, price, category and quantity are required',
+        received: {
+          productId: productId || 'missing',
+          name: name || 'missing',
+          price: price || 'missing',
+          category: category || 'missing',
+          qty: qty || 'missing'
+        }
+      });
+    }
+
+    // Begin building the SQL query
+    let query = `
+      UPDATE products
+      SET name = ?, description = ?, price = ?, category = ?, qty = ?
+    `;
+    const params = [name, description, price, category, qty];
+
+    // If there's a new image, include it in the update query
+    if (image) {
+      query += `, image = ?`;
+      params.push(image);
+    }
+
+    // Complete the SQL query to match the product ID
+    query += ` WHERE id = ?`;
+    params.push(productId);
+
+    // Execute the SQL query to update the product in the database
+    connection.query(query, params, (error, results) => {
       if (error) {
-        return res.status(500).json({ 
-          message: 'Error deactivating product', 
-          error: error 
-        });
+        return res.status(500).json({ message: 'Error updating product in database', error: error });
       }
-      
+
       if (results.affectedRows === 0) {
         return res.status(404).json({ message: 'Product not found' });
       }
-      
-      return res.status(200).json({ 
-        message: 'Product has been successfully deactivated',
+
+      // Successfully updated the product
+      res.status(200).json({ 
+        message: 'Product updated successfully',
         productId: productId
       });
     });
-  };
+  });
+};
   
 
- 
+const softDeleteProduct = (req, res) => {
+  const productId = req.params.id;
   
+  if (!productId) {
+    return res.status(400).json({ message: 'Product ID is required' });
+  }
 
-module.exports = { productUpload , getAllProducts , updateProduct ,softDeleteProduct};
+  const deactivateQuery = 'UPDATE products SET active = 0 WHERE id = ?';
+  
+  connection.query(deactivateQuery, [productId], (error, results) => {
+    if (error) {
+      return res.status(500).json({ 
+        message: 'Error deactivating product', 
+        error: error 
+      });
+    }
+    
+    if (results.affectedRows === 0) {
+      return res.status(404).json({ message: 'Product not found' });
+    }
+    
+    return res.status(200).json({ 
+      message: 'Product has been successfully deactivated',
+      productId: productId
+    });
+  });
+};
+  
+module.exports = { productUpload, getAllProducts, updateProduct, softDeleteProduct };
