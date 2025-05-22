@@ -18,6 +18,7 @@ const transactionRoutes = require("./routes/transaction-route");
 const orderRoutes = require("./routes/orders-route");
 const categoryRoutes = require("./routes/category-route");
 const dashboardRoutes = require("./routes/dashboard-route");
+const ratingsRoutes = require("./routes/ratings-route");
 
 // Mount route files just once under a base path
 app.use("/api/v1/user", userRoutes);
@@ -26,6 +27,7 @@ app.use("/api/v1/transaction", transactionRoutes);
 app.use("/api/v1/orders", orderRoutes);
 app.use("/api/v1/category", categoryRoutes);
 app.use("/api/v1/dashboard", dashboardRoutes);
+app.use("/api/v1/ratings",ratingsRoutes);
 
 
 

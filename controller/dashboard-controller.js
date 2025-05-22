@@ -69,4 +69,89 @@ const totalRevenue = (req , res) => {
 
 }
 
-module.exports = {totalUsers , totalOrders , totalProducts, totalRevenue}
+
+const totalOrdersMonthly = (req, res) => {
+  const query = `
+    SELECT 
+      MONTH(created_at) AS month,
+      COUNT(*) AS total
+    FROM orders
+    WHERE YEAR(created_at) = YEAR(CURDATE())
+    GROUP BY MONTH(created_at)
+    ORDER BY MONTH(created_at);
+  `;
+
+  connection.query(query, (err, results) => {
+    if (err) {
+      console.error("Error fetching monthly orders:", err);
+      return res.status(500).json({ error: "Database error" });
+    }
+
+    const monthNames = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ];
+
+    const labels = [];
+    const data = [];
+
+    // Build a map from query results
+    const resultMap = new Map();
+    results.forEach(row => {
+      resultMap.set(row.month, row.total);
+    });
+
+    // Fill all 12 months
+    for (let i = 1; i <= 12; i++) {
+      labels.push(monthNames[i - 1]);
+      data.push(resultMap.get(i) || 0); // Default to 0 if not in result
+    }
+
+    res.json({ labels, data });
+  });
+};
+
+
+
+const totalRevenueMonthly = (req, res) => {
+  const query = `
+    SELECT 
+      MONTH(paid_at) AS month,
+      SUM(paid_amount) AS revenue
+    FROM payments
+    WHERE YEAR(paid_at) = YEAR(CURDATE())
+    GROUP BY MONTH(paid_at)
+    ORDER BY MONTH(paid_at);
+  `;
+
+  connection.query(query, (err, results) => {
+    if (err) {
+      console.error("Error fetching monthly revenue:", err);
+      return res.status(500).json({ error: "Database error" });
+    }
+
+    const monthNames = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ];
+
+    const labels = [];
+    const data = [];
+
+    const resultMap = new Map();
+    results.forEach(row => {
+      resultMap.set(row.month, row.revenue);
+    });
+
+    for (let i = 1; i <= 12; i++) {
+      labels.push(monthNames[i - 1]);
+      data.push(resultMap.get(i) || 0);
+    }
+
+    res.json({ labels, data });
+  });
+};
+
+
+
+module.exports = {totalUsers , totalOrders , totalProducts, totalRevenue ,totalOrdersMonthly,totalRevenueMonthly}
